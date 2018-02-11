@@ -12,19 +12,19 @@ public class FileVisitor extends SimpleFileVisitor<Path> {
     private final PrintWriter printWriter;
 
     public FileVisitor(PrintWriter printWriter) {
-        super();
-        this.printWriter = printWriter;
+      super();
+      this.printWriter = printWriter;
     }
 
     @Override
     public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
-        printWriter.printf("%08x %s\n", FNV32Hash.getHash(file), file.toString());
-        return FileVisitResult.CONTINUE;
+      printWriter.printf("%08x %s\n", FNV32Hash.getHash(file), file.toString());
+      return FileVisitResult.CONTINUE;
     }
 
     @Override
     public FileVisitResult visitFileFailed(Path file, IOException exc) throws IOException {
-        printWriter.printf("%08x %s\n", 0, file.toString());
-        return super.visitFileFailed(file, exc);
+      printWriter.printf("%08x %s\n", 0, file.toString());
+      return super.visitFileFailed(file, exc);
     }
 }
