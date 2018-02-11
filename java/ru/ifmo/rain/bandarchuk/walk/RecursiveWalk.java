@@ -18,7 +18,7 @@ public class RecursiveWalk {
     private final Path inputFilePath;
     private final Path outputFilePath;
 
-    public RecursiveWalk(String inputFile, String outputFile) throws RecursiveWalkException {
+    public RecursiveWalk(final String inputFile, final String outputFile) throws RecursiveWalkException {
         try {
             inputFilePath = Paths.get(inputFile);
         } catch (InvalidPathException e) {
@@ -54,7 +54,7 @@ public class RecursiveWalk {
                 while ((nextLine = bufferedReader.readLine()) != null) {
                     try {
                         previousLine = nextLine;
-                        Path path = Paths.get(nextLine);
+                        final Path path = Paths.get(nextLine);
                         if (Files.isDirectory(path)) {
                             Files.walkFileTree(path, new FileVisitor(printWriter));
                         } else {
@@ -67,7 +67,7 @@ public class RecursiveWalk {
                     }
                 }
             } catch (IOException e) {
-                String message;
+                final String message;
                 if (previousLine == null) {
                     message = "at the beginning of the file";
                 } else {
@@ -77,8 +77,8 @@ public class RecursiveWalk {
                                                 + message);
             }
         } catch (IOException e) {
-            boolean isInputFileCorrect = Files.isRegularFile(inputFilePath);
-            boolean isOutputFileCorrect = Files.isRegularFile(outputFilePath);
+            final boolean isInputFileCorrect = Files.isRegularFile(inputFilePath);
+            final boolean isOutputFileCorrect = Files.isRegularFile(outputFilePath);
             if (!isInputFileCorrect && !isOutputFileCorrect) {
                 throw new RecursiveWalkException("Both input and output files are incorrect");
             } else if (!isInputFileCorrect) {

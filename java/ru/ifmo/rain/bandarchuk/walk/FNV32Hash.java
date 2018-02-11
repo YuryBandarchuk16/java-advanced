@@ -21,7 +21,7 @@ public class FNV32Hash {
         return result;
     }
 
-    public static int getHash(Path filePath) {
+    public static int getHash(final Path filePath) {
         long result = INIT;
         try (InputStream inputStream = new FileInputStream(filePath.toString())) {
             int countRead;
