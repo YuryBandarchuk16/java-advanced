@@ -3,11 +3,8 @@ package ru.ifmo.rain.bandarchuk.walk;
 import ru.ifmo.rain.bandarchuk.walk.exceptions.RecursiveWalkException;
 
 import java.io.BufferedReader;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
@@ -26,16 +23,11 @@ public class RecursiveWalk {
       }
       try {
         outputFilePath = Paths.get(outputFile);
-        if (!Files.exists(outputFilePath)) {
-          try {
-            if (outputFilePath.getParent() != null) {
-              Files.createDirectories(outputFilePath.getParent());
-            }
-            Files.createFile(outputFilePath);
-          } catch (IOException e) {
-            throw new RecursiveWalkException("Error while creating output file at: '" + outputFile + "'");
-          }
+        if (!Files.exists(outputFilePath) && outputFilePath.getParent() != null) {
+          Files.createDirectories(outputFilePath.getParent());
         }
+      } catch (IOException e) {
+        throw new RecursiveWalkException("Error while creating output file at: '" + outputFile + "'");
       } catch (InvalidPathException e) {
         throw new RecursiveWalkException("Invalid output file: '" + outputFile + "'");
       }
@@ -43,37 +35,34 @@ public class RecursiveWalk {
 
     public void walk() throws RecursiveWalkException {
       try (
-        BufferedReader bufferedReader = Files.newBufferedReader(inputFilePath, StandardCharsets.UTF_8);
-        PrintWriter printWriter = new PrintWriter(new OutputStreamWriter(
-          new FileOutputStream(outputFilePath.toString()), StandardCharsets.UTF_8)
-        )
+        BufferedReader bufferedReader = Files.newBufferedReader(inputFilePath);
+        PrintWriter printWriter = new PrintWriter(Files.newBufferedWriter(outputFilePath))
       ) {
         String nextLine;
         String previousLine = null;
+        FileVisitor visitor = new FileVisitor(printWriter);
         try {
           while ((nextLine = bufferedReader.readLine()) != null) {
             try {
               previousLine = nextLine;
               final Path path = Paths.get(nextLine);
               if (Files.isDirectory(path)) {
-                Files.walkFileTree(path, new FileVisitor(printWriter));
+                Files.walkFileTree(path, visitor);
               } else {
-                printWriter.printf("%08x %s\n", FNV32Hash.getHash(path), path.toString());
+                printWriter.printf("%08x %s%n", FNV32Hash.getHash(path), path);
               }
             } catch (InvalidPathException e) {
-              printWriter.printf("%08x %s\n", 0, nextLine);
+              printWriter.printf("%08x %s%n", 0, nextLine);
             } catch (IOException e) {
               throw new RecursiveWalkException("Error while walking the file tree from: '" + nextLine + "'");
             }
           }
         } catch (IOException e) {
           final String message;
-          if (previousLine == null) {
-            message = "at the beginning of the file";
-          } else {
-            message = "after the following line:\n" + previousLine;
-          }
-          throw new RecursiveWalkException("Error while reading from file at: '" + inputFilePath.toString() + "'\n"
+          message = previousLine == null
+            ? "at the beginning of the file"
+            : "after the following line:\n" + previousLine;
+          throw new RecursiveWalkException("Error while reading from file at: '" + inputFilePath + "'\n"
             + message);
         }
       } catch (IOException e) {
@@ -93,7 +82,7 @@ public class RecursiveWalk {
 
     public static void main(String[] args) {
       try {
-        if (args.length != 2) {
+        if (args.length != 2 || args[0] == null || args[1] == null) {
           throw new RecursiveWalkException("Usage: <input file path> <output file path>");
         }
         RecursiveWalk recursiveWalk = new RecursiveWalk(args[0], args[1]);
