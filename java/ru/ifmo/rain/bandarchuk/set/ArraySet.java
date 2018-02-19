@@ -29,7 +29,7 @@ public class ArraySet<E> extends AbstractSet<E> implements NavigableSet<E> {
     comparator = null;
   }
 
-  public ArraySet(Collection<E> collection) {
+  public ArraySet(Collection< E> collection) {
     this(collection, null, true);
   }
 
@@ -38,18 +38,14 @@ public class ArraySet<E> extends AbstractSet<E> implements NavigableSet<E> {
   }
 
   private ArraySet(Collection<E> collection, Comparator<? super E> comparator, boolean needSort) {
-    if (comparator == null && !(collection instanceof Comparable)) {
-      throw new IllegalArgumentException("ArraySet can not be created without comparator from not Comparable class");
-    }
-
     this.comparator = comparator;
 
     if (needSort) {
-      SortedSet<E> sortedSet = new TreeSet<>(comparator);
+      TreeSet<E> sortedSet = new TreeSet<>(comparator);
       sortedSet.addAll(collection);
       this.elements = new ArrayList<>(sortedSet);
     } else {
-      this.elements = ((List<E>)(collection));
+      this.elements = new ArrayList<>(collection);
     }
 
     this.size = this.elements.size();
@@ -60,13 +56,19 @@ public class ArraySet<E> extends AbstractSet<E> implements NavigableSet<E> {
   }
 
   private int targetIndex(E target) {
-    return Collections.binarySearch(elements, target, comparator);
+    int result = Collections.binarySearch(elements, target, comparator);
+
+    if (result < 0) {
+      result = -result - 1;
+    }
+
+    return result;
   }
 
   private int targetIndex(E target, int addFoundEqual, int addNotFoundEqual) {
-    int index = targetIndex(target);
+    int index = Collections.binarySearch(elements, target, comparator);
 
-    return isValidIndex(index) ? index + addFoundEqual : index + addNotFoundEqual;
+    return index >= 0 ? index + addFoundEqual : -index - 1 - addNotFoundEqual;
   }
 
   private E getElementByIndex(int index) {
@@ -104,6 +106,11 @@ public class ArraySet<E> extends AbstractSet<E> implements NavigableSet<E> {
   }
 
   @Override
+  public boolean contains(Object o) {
+    return isValidIndex(targetIndex((E)o));
+  }
+
+  @Override
   public Iterator<E> iterator() {
     return Collections.unmodifiableList(elements).iterator();
   }
@@ -125,13 +132,9 @@ public class ArraySet<E> extends AbstractSet<E> implements NavigableSet<E> {
   @Override
   public NavigableSet<E> subSet(E fromElement, boolean fromInclusive, E toElement, boolean toInclusive) {
     int fromIndex = targetIndex(fromElement, fromInclusive ? DONT_MOVE : MOVE_RIGHT, DONT_MOVE);
-    int toIndex = targetIndex(toElement, toInclusive ? DONT_MOVE : MOVE_LEFT, DONT_MOVE) + 1;
+    int toIndex = targetIndex(toElement, toInclusive ? DONT_MOVE : MOVE_LEFT, MOVE_RIGHT) + 1;
 
-    if (fromIndex > toIndex) {
-      throw new IllegalArgumentException(fromElement + "is greater than " + toElement);
-    }
-
-    Collection<E> sublist = elements.subList(fromIndex, toIndex);
+    Collection<E> sublist = elements.subList(Math.min(fromIndex, toIndex), toIndex);
     return new ArraySet<>(sublist, comparator, false);
   }
 
@@ -142,7 +145,7 @@ public class ArraySet<E> extends AbstractSet<E> implements NavigableSet<E> {
 
   @Override
   public NavigableSet<E> tailSet(E fromElement, boolean inclusive) {
-    return subSet(fromElement, inclusive, getElementByIndex(size - 1), false);
+    return subSet(fromElement, inclusive, getElementByIndex(size - 1), true);
   }
 
   @Override
