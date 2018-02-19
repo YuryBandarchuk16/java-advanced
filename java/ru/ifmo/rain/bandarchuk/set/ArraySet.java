@@ -29,15 +29,15 @@ public class ArraySet<E> extends AbstractSet<E> implements NavigableSet<E> {
     comparator = null;
   }
 
-  public ArraySet(Collection< E> collection) {
+  public ArraySet(Collection<? extends E> collection) {
     this(collection, null, true);
   }
 
-  public ArraySet(Collection<E> collection, Comparator<? super E> comparator) {
+  public ArraySet(Collection<? extends E> collection, Comparator<? super E> comparator) {
     this(collection, comparator, true);
   }
 
-  private ArraySet(Collection<E> collection, Comparator<? super E> comparator, boolean needSort) {
+  private ArraySet(Collection<? extends E> collection, Comparator<? super E> comparator, boolean needSort) {
     this.comparator = comparator;
 
     if (needSort) {
