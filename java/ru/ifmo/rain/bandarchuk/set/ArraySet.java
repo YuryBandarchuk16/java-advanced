@@ -14,6 +14,8 @@ import java.util.TreeSet;
 
 public class ArraySet<E> extends AbstractSet<E> implements NavigableSet<E> {
 
+  private final String UNSUPPORTED_OPERATION_EXCEPTION_MESSAGE;
+
   private static final int DONT_MOVE = 0;
   private static final int MOVE_LEFT = -1;
   private static final int MOVE_RIGHT = 1;
@@ -27,6 +29,7 @@ public class ArraySet<E> extends AbstractSet<E> implements NavigableSet<E> {
     size = 0;
     elements = Collections.emptyList();
     comparator = null;
+    UNSUPPORTED_OPERATION_EXCEPTION_MESSAGE = this + " is immutable";
   }
 
   public ArraySet(Collection<? extends E> collection) {
@@ -49,6 +52,7 @@ public class ArraySet<E> extends AbstractSet<E> implements NavigableSet<E> {
     }
 
     this.size = this.elements.size();
+    UNSUPPORTED_OPERATION_EXCEPTION_MESSAGE = this + " is immutable";
   }
 
   private boolean isValidIndex(int index) {
@@ -56,13 +60,7 @@ public class ArraySet<E> extends AbstractSet<E> implements NavigableSet<E> {
   }
 
   private int targetIndex(E target) {
-    int result = Collections.binarySearch(elements, target, comparator);
-
-    if (result < 0) {
-      result = -result - 1;
-    }
-
-    return result;
+    return targetIndex(target, DONT_MOVE, DONT_MOVE);
   }
 
   private int targetIndex(E target, int addFoundEqual, int addNotFoundEqual) {
@@ -97,12 +95,12 @@ public class ArraySet<E> extends AbstractSet<E> implements NavigableSet<E> {
 
   @Override
   public E pollFirst() {
-    throw new UnsupportedOperationException(this + " is immutable");
+    throw new UnsupportedOperationException(UNSUPPORTED_OPERATION_EXCEPTION_MESSAGE);
   }
 
   @Override
   public E pollLast() {
-    throw new UnsupportedOperationException(this + " is immutable");
+    throw new UnsupportedOperationException(UNSUPPORTED_OPERATION_EXCEPTION_MESSAGE);
   }
 
   @Override
@@ -127,6 +125,21 @@ public class ArraySet<E> extends AbstractSet<E> implements NavigableSet<E> {
   @Override
   public Iterator<E> descendingIterator() {
     return descendingSet().iterator();
+  }
+
+  @Override
+  public void clear() {
+    throw new UnsupportedOperationException(UNSUPPORTED_OPERATION_EXCEPTION_MESSAGE);
+  }
+
+  @Override
+  public boolean add(E e) {
+    throw new UnsupportedOperationException(UNSUPPORTED_OPERATION_EXCEPTION_MESSAGE);
+  }
+
+  @Override
+  public boolean addAll(Collection<? extends E> collection) {
+    throw new UnsupportedOperationException(UNSUPPORTED_OPERATION_EXCEPTION_MESSAGE);
   }
 
   @Override
