@@ -1,5 +1,6 @@
 package ru.ifmo.rain.bandarchuk.set;
 
+import java.util.AbstractList;
 import java.util.AbstractSet;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -14,7 +15,7 @@ import java.util.TreeSet;
 
 public class ArraySet<E> extends AbstractSet<E> implements NavigableSet<E> {
 
-  private final String UNSUPPORTED_OPERATION_EXCEPTION_MESSAGE;
+  private static final String UNSUPPORTED_OPERATION_EXCEPTION_MESSAGE = "The object is immutable";
 
   private static final int DONT_MOVE = 0;
   private static final int MOVE_LEFT = -1;
@@ -29,7 +30,6 @@ public class ArraySet<E> extends AbstractSet<E> implements NavigableSet<E> {
     size = 0;
     elements = Collections.emptyList();
     comparator = null;
-    UNSUPPORTED_OPERATION_EXCEPTION_MESSAGE = this + " is immutable";
   }
 
   public ArraySet(Collection<? extends E> collection) {
@@ -46,13 +46,18 @@ public class ArraySet<E> extends AbstractSet<E> implements NavigableSet<E> {
     if (needSort) {
       TreeSet<E> sortedSet = new TreeSet<>(comparator);
       sortedSet.addAll(collection);
-      this.elements = new ArrayList<>(sortedSet);
+      this.elements = Collections.unmodifiableList(new ArrayList<>(sortedSet));
     } else {
       this.elements = new ArrayList<>(collection);
     }
 
     this.size = this.elements.size();
-    UNSUPPORTED_OPERATION_EXCEPTION_MESSAGE = this + " is immutable";
+  }
+
+  private ArraySet(List<E> collection, Comparator<? super E> comparator) {
+    this.elements = collection;
+    this.comparator = comparator;
+    this.size = this.elements.size();
   }
 
   private boolean isValidIndex(int index) {
@@ -113,10 +118,35 @@ public class ArraySet<E> extends AbstractSet<E> implements NavigableSet<E> {
     return Collections.unmodifiableList(elements).iterator();
   }
 
+  private class ReversedList<T> extends AbstractList<T> {
+    private final List<T> elements;
+    private boolean reversed;
+
+    ReversedList(List<T> elements) {
+      if (elements instanceof ArraySet.ReversedList) {
+        this.elements = ((ReversedList<T>) elements).elements;
+        reversed = !((ReversedList<T>) elements).reversed;
+      } else {
+        this.elements = elements;
+        reversed = true;
+      }
+    }
+
+    @Override
+    public T get(int index) {
+      return reversed ? elements.get(size() - 1 - index) : elements.get(index);
+    }
+
+    @Override
+    public int size() {
+      return elements.size();
+    }
+  }
+
   @Override
   public NavigableSet<E> descendingSet() {
     if (descending == null) {
-      descending = new ArraySet<>(elements, Collections.reverseOrder(comparator));
+      descending = new ArraySet<>(new ReversedList<>(elements), Collections.reverseOrder(comparator), true);
     }
 
     return descending;
@@ -147,8 +177,7 @@ public class ArraySet<E> extends AbstractSet<E> implements NavigableSet<E> {
     int fromIndex = targetIndex(fromElement, fromInclusive ? DONT_MOVE : MOVE_RIGHT, DONT_MOVE);
     int toIndex = targetIndex(toElement, toInclusive ? DONT_MOVE : MOVE_LEFT, MOVE_RIGHT) + 1;
 
-    Collection<E> sublist = elements.subList(Math.min(fromIndex, toIndex), toIndex);
-    return new ArraySet<>(sublist, comparator, false);
+    return new ArraySet<>(elements.subList(fromIndex, Math.max(fromIndex, toIndex)), comparator);
   }
 
   @Override
