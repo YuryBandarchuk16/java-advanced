@@ -46,7 +46,7 @@ public class StudentDB implements StudentQuery {
 
     @Override
     public String getMinStudentFirstName(List<Student> students) {
-        return students.stream().min(Student::compareTo).map(Student::getFirstName).get();
+        return students.stream().min(Comparator.comparingInt(Student::getId)).map(Student::getFirstName).get();
     }
 
     @Override
@@ -80,7 +80,7 @@ public class StudentDB implements StudentQuery {
     }
 
     private static String merger(String s1, String s2) {
-        return s1;
+        return s1.compareTo(s2) < 0 ? s1 : s2;
     }
 
     private Stream<String> map(Stream<Student> students, Function<Student, String> mapper) {
