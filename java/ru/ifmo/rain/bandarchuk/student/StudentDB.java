@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.function.BinaryOperator;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -19,6 +20,8 @@ public class StudentDB implements StudentQuery {
     private static final Comparator<Student> STUDENT_BY_NAME_COMPARATOR = Comparator.comparing(Student::getLastName).
         thenComparing(Student::getFirstName).
         thenComparing(Student::getId);
+
+    private static final BinaryOperator<String> MINIMAL_STRING = BinaryOperator.minBy(String::compareTo);
 
     @Override
     public List<String> getFirstNames(List<Student> students) {
@@ -42,12 +45,14 @@ public class StudentDB implements StudentQuery {
 
     @Override
     public Set<String> getDistinctFirstNames(List<Student> students) {
-        return new TreeSet<>(map(students, Student::getFirstName).distinct().collect(Collectors.toList()));
+        return map(students, Student::getFirstName).collect(Collectors.toCollection(TreeSet::new));
     }
 
     @Override
     public String getMinStudentFirstName(List<Student> students) {
-        return students.stream().min(Comparator.comparingInt(Student::getId)).map(Student::getFirstName).orElse("");
+        return students.stream()
+            .min(Comparator.comparingInt(Student::getId))
+            .map(Student::getFirstName).orElse("");
     }
 
     @Override
@@ -77,15 +82,13 @@ public class StudentDB implements StudentQuery {
 
     @Override
     public Map<String, String> findStudentNamesByGroup(Collection<Student> students, String group) {
-        return filter(students, student -> student.getGroup().equals(group)).collect(Collectors.toMap(Student::getLastName, Student::getFirstName, StudentDB::merger));
+        return filter(students, student -> student.getGroup()
+            .equals(group))
+            .collect(Collectors.toMap(Student::getLastName, Student::getFirstName, MINIMAL_STRING));
     }
 
     private static String getFullName(Student student) {
         return student.getFirstName() + " " + student.getLastName();
-    }
-
-    private static String merger(String s1, String s2) {
-        return s1.compareTo(s2) < 0 ? s1 : s2;
     }
 
     private Stream<String> map(Stream<Student> students, Function<Student, String> mapper) {
