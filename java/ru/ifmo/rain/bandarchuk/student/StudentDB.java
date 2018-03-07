@@ -21,8 +21,6 @@ public class StudentDB implements StudentQuery {
         thenComparing(Student::getFirstName).
         thenComparing(Student::getId);
 
-    private static final BinaryOperator<String> MINIMAL_STRING = BinaryOperator.minBy(String::compareTo);
-
     @Override
     public List<String> getFirstNames(List<Student> students) {
         return mappedList(students, Student::getFirstName);
@@ -84,7 +82,7 @@ public class StudentDB implements StudentQuery {
     public Map<String, String> findStudentNamesByGroup(Collection<Student> students, String group) {
         return filter(students, student -> student.getGroup()
             .equals(group))
-            .collect(Collectors.toMap(Student::getLastName, Student::getFirstName, MINIMAL_STRING));
+            .collect(Collectors.toMap(Student::getLastName, Student::getFirstName, BinaryOperator.minBy(String::compareTo)));
     }
 
     private static String getFullName(Student student) {
