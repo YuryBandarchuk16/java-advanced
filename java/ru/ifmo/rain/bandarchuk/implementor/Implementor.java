@@ -1,6 +1,5 @@
 package ru.ifmo.rain.bandarchuk.implementor;
 
-import com.sun.org.apache.bcel.internal.generic.NEW;
 import info.kgeorgiy.java.advanced.implementor.Impler;
 import info.kgeorgiy.java.advanced.implementor.ImplerException;
 
@@ -29,9 +28,9 @@ public class Implementor implements Impler {
     private static final String GENERATED_CLASS_SUFFIX = "Impl";
 
     private static final String DEFAULT_PRIMITIVE_VALUE = "0";
-    private static final String DEFAULT_BOOLEAN_VALUE   = "true";
-    private static final String DEFAULT_VOID_VALUE      = "";
-    private static final String DEFAULT_OBJECT_VALUE    = "null";
+    private static final String DEFAULT_BOOLEAN_VALUE = "true";
+    private static final String DEFAULT_VOID_VALUE = "";
+    private static final String DEFAULT_OBJECT_VALUE = "null";
 
     private static String getClassName(Class<?> classDefinition) {
         return classDefinition.getSimpleName() + GENERATED_CLASS_SUFFIX;
@@ -98,14 +97,14 @@ public class Implementor implements Impler {
     private static String getMethodDeclaration(Class<?> classDefinition, Executable executable) {
         StringBuilder builder = new StringBuilder();
 
-        String methodModifiers = Modifier.toString(executable.getModifiers() & ~Modifier.ABSTRACT & ~Modifier.INTERFACE & ~Modifier.TRANSIENT);
+        String methodModifiers = Modifier.toString(executable.getModifiers() & ~Modifier.ABSTRACT & ~Modifier.INTERFACE & ~Modifier.TRANSIENT & ~Modifier.NATIVE);
 
         builder.append(getTabulation(1))
             .append(methodModifiers)
             .append(SPACE);
 
         if (executable instanceof Method) {
-            Method method = (Method)executable;
+            Method method = (Method) executable;
             builder.append(method.getReturnType().getCanonicalName())
                 .append(SPACE)
                 .append(method.getName());
@@ -280,12 +279,12 @@ public class Implementor implements Impler {
 
     /* Region: HELPER */
 
-    private static final String SPACE              = " ";
-    private static final String NEW_LINE           = "\n";
-    private static final String LEFT_BRACKET       = "(";
-    private static final String RIGHT_BRACKET      = ")";
-    private static final String COMMA              = ",";
-    private static final String DEFAULT_TAB        = "    ";
+    private static final String SPACE = " ";
+    private static final String NEW_LINE = "\n";
+    private static final String LEFT_BRACKET = "(";
+    private static final String RIGHT_BRACKET = ")";
+    private static final String COMMA = ",";
+    private static final String DEFAULT_TAB = "    ";
     private static final String LEFT_CURVE_BRACKET = "{";
     private static final String RIGHT_CURVE_BRACKET = "}";
 
@@ -406,8 +405,7 @@ public class Implementor implements Impler {
             System.err.println("Incorrect root path for input");
         } catch (ArrayIndexOutOfBoundsException e) {
             System.err.println("Not enough arguments for input");
-        }
-        catch (ImplerException e) {
+        } catch (ImplerException e) {
             System.err.println("Exception, when implementing class: " + e.getMessage());
         }
     }
