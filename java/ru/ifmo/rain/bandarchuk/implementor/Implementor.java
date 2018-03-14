@@ -226,7 +226,6 @@ public class Implementor implements Impler {
     /* Region: CREATE CLASS */
 
     private static void printMethod(Class<?> classDefinition, Method method, BufferedWriter bufferedWriter) throws IOException {
-        bufferedWriter.write(getMethodAnnotations(method.getAnnotations()));
         bufferedWriter.write(getMethodFull(classDefinition, method));
     }
 
