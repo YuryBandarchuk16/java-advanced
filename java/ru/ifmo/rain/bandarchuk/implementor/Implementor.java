@@ -2,7 +2,11 @@ package ru.ifmo.rain.bandarchuk.implementor;
 
 import info.kgeorgiy.java.advanced.implementor.Impler;
 import info.kgeorgiy.java.advanced.implementor.ImplerException;
+import info.kgeorgiy.java.advanced.implementor.JarImpler;
 
+import javax.tools.JavaCompiler;
+import javax.tools.ToolProvider;
+import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
@@ -20,8 +24,12 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.jar.Attributes;
+import java.util.jar.JarOutputStream;
+import java.util.jar.Manifest;
+import java.util.zip.ZipEntry;
 
-public class Implementor implements Impler {
+public class Implementor implements Impler, JarImpler {
 
     /* Region: PARSE CLASS INFO */
 
@@ -202,9 +210,11 @@ public class Implementor implements Impler {
                 .append(LEFT_CURVE_BRACKET)
                 .append(NEW_LINE)
                 .append(getTabulation(2))
-                .append("super(")
+                .append("super")
+                .append(LEFT_BRACKET)
                 .append(getParameters(constructor, false))
-                .append(");")
+                .append(RIGHT_BRACKET)
+                .append(";")
                 .append(NEW_LINE)
                 .append(getTabulation(1))
                 .append(RIGHT_CURVE_BRACKET)
@@ -255,7 +265,7 @@ public class Implementor implements Impler {
             printMethod(classDefinitions, wrapper.getMethod(), bufferedWriter);
         }
 
-        bufferedWriter.write("}" + NEW_LINE);
+        bufferedWriter.write(RIGHT_CURVE_BRACKET + NEW_LINE);
     }
 
     private static void printConstructors(Class<?> classDefinition, BufferedWriter bufferedWriter) throws ImplerException, IOException {
@@ -278,6 +288,7 @@ public class Implementor implements Impler {
 
     /* Region: HELPER */
 
+    private static final String JAR_OPTION = "-jar";
     private static final String SPACE = " ";
     private static final String NEW_LINE = "\n";
     private static final String LEFT_BRACKET = "(";
@@ -286,6 +297,21 @@ public class Implementor implements Impler {
     private static final String DEFAULT_TAB = "    ";
     private static final String LEFT_CURVE_BRACKET = "{";
     private static final String RIGHT_CURVE_BRACKET = "}";
+
+    private enum FileExtension {
+        JAVA(".java"),
+        CLASS(".class");
+
+        private String value;
+
+        FileExtension(String value) {
+            this.value = value;
+        }
+
+        public String getValue() {
+            return value;
+        }
+    }
 
     private static String getTabulation(int tabs) {
         return repeat(DEFAULT_TAB, tabs);
@@ -309,30 +335,78 @@ public class Implementor implements Impler {
         return root;
     }
 
-    private static Path getJavaFilePath(Class<?> classDefinition, Path root) throws IOException {
+    private static Path getFilePath(Class<?> classDefinition, Path root, FileExtension extension) throws IOException {
         root = addPackageToPath(classDefinition, root);
         Files.createDirectories(root);
 
-        return root.resolve(getClassName(classDefinition) + ".java");
+        return root.resolve(getClassName(classDefinition) + extension.getValue());
     }
 
     @Override
     public void implement(Class<?> classDefinition, Path root) throws ImplerException {
         if (classDefinition == null || root == null) {
-            throw new ImplerException("Incorrect arguments passed");
+            throw new ImplerException("Invalid arguments: " + ((classDefinition == null) ? "class definition " : "root path ") + "is null");
         }
 
         if (classDefinition.isPrimitive() || classDefinition == Enum.class || classDefinition.isArray()
             || Modifier.isFinal(classDefinition.getModifiers())) {
-            throw new ImplerException("Incorrect class definition passed");
+            throw new ImplerException("Invalid class definition was passed");
         }
 
         try (BufferedWriter BufferedWriter =
                  new BufferedWriter(
                      new OutputStreamWriter(
-                         new FileOutputStream(getJavaFilePath(classDefinition, root).toString()),
+                         new FileOutputStream(getFilePath(classDefinition, root, FileExtension.JAVA).toString()),
                          StandardCharsets.UTF_8))) {
             printFile(classDefinition, BufferedWriter);
+        } catch (IOException e) {
+            throw new ImplerException(e);
+        }
+    }
+
+    private void compileClass(Path root, Path javaFilePath) throws ImplerException {
+        JavaCompiler javaCompiler = ToolProvider.getSystemJavaCompiler();
+        if (javaCompiler == null) {
+            throw new ImplerException("Java compiler was not found");
+        }
+        int returnCode = javaCompiler.run(null, null, null,
+            javaFilePath.toString(),
+            "-cp", root + File.pathSeparator + System.getProperty("java.class.path"),
+            "-encoding", "UTF-8"
+        );
+        if (returnCode != 0) {
+            throw new ImplerException("Error with code: " + returnCode + " occurred during compilation");
+        }
+    }
+
+    private void writeJarFile(Path className, Path root, Path jarPath) throws ImplerException {
+        className = className.normalize();
+        root = root.normalize();
+        jarPath = jarPath.normalize();
+        Path classFile = root.resolve(className);
+        Manifest manifest = new Manifest();
+        manifest.getMainAttributes().put(Attributes.Name.MANIFEST_VERSION, "1.0");
+        try (JarOutputStream out = new JarOutputStream(Files.newOutputStream(jarPath), manifest)) {
+            out.putNextEntry(new ZipEntry(className.toString()));
+            Files.copy(classFile, out);
+        } catch (IOException e) {
+            throw new ImplerException("Error occurred when creating jar file", e);
+        }
+    }
+
+    @Override
+    public void implementJar(Class<?> classDefinition, Path jarFile) throws ImplerException {
+        try {
+            Path temporaryDirectory = Paths.get(System.getProperty("java.io.tmpdir"));
+            temporaryDirectory = temporaryDirectory.normalize();
+            jarFile = jarFile.normalize();
+
+            //generate .java file for needed class
+            Implementor implementor = new Implementor();
+            implementor.implement(classDefinition, temporaryDirectory);
+
+            compileClass(temporaryDirectory, Implementor.getFilePath((classDefinition), temporaryDirectory, FileExtension.JAVA));
+            writeJarFile(Implementor.getFilePath(classDefinition, Paths.get("."), FileExtension.CLASS), temporaryDirectory, jarFile);
         } catch (IOException e) {
             throw new ImplerException(e);
         }
@@ -397,13 +471,17 @@ public class Implementor implements Impler {
         Implementor implementor = new Implementor();
 
         try {
-            implementor.implement(Class.forName(args[0]), Paths.get(args[1]));
+            if (args[0].equals(JAR_OPTION)) {
+                implementor.implementJar(Class.forName(args[1]), Paths.get(args[2]));
+            } else {
+                implementor.implement(Class.forName(args[0]), Paths.get(args[1]));
+            }
         } catch (ClassNotFoundException e) {
-            System.err.println("Incorrect class name for input");
+            System.err.println("Incorrect input class name");
         } catch (InvalidPathException e) {
-            System.err.println("Incorrect root path for input");
+            System.err.println("Incorrect input root path");
         } catch (ArrayIndexOutOfBoundsException e) {
-            System.err.println("Not enough arguments for input");
+            System.err.println("Not enough arguments");
         } catch (ImplerException e) {
             System.err.println("Exception, when implementing class: " + e.getMessage());
         }
