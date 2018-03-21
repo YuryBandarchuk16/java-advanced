@@ -40,14 +40,54 @@ public class Implementor implements Impler, JarImpler {
     private static final String DEFAULT_VOID_VALUE = "";
     private static final String DEFAULT_OBJECT_VALUE = "null";
 
+    /**
+     * Escapes text
+     *
+     * @param text text to escape
+     * @return {@link java.lang.String}
+     */
+    private static String escape(String text) {
+        StringBuilder result = new StringBuilder();
+
+        int textLength = text.length();
+        for (int index = 0; index < textLength; index++) {
+            char code = text.charAt(index);
+            if ((int)code <= 127) {
+                result.append(code);
+            } else {
+                result.append(String.format("\\u%04x", (int)code));
+            }
+        }
+
+        return result.toString();
+    }
+
+    /**
+     * Method retrieves class name by class definition
+     *
+     * @param classDefinition where to extract token from
+     * @return {@link java.lang.String} class name extracted from given definition
+     */
     private static String getClassName(Class<?> classDefinition) {
         return classDefinition.getSimpleName() + GENERATED_CLASS_SUFFIX;
     }
 
+    /**
+     * Method retrieves package name by class definition
+     *
+     * @param classDefinition where to extract token from
+     * @return {@link java.lang.String} package name extracted from given definition
+     */
     private static String getPackage(Class<?> classDefinition) {
         return "package " + classDefinition.getPackage().getName();
     }
 
+    /**
+     * Method returns default value for type
+     *
+     * @param classDefinition where to extract token from
+     * @return {@link java.lang.String} default value for type extracted from class
+     */
     private static String getDefaultValue(Class<?> classDefinition) {
         if (classDefinition.equals(boolean.class)) {
             return DEFAULT_BOOLEAN_VALUE;
@@ -60,6 +100,13 @@ public class Implementor implements Impler, JarImpler {
         return DEFAULT_OBJECT_VALUE;
     }
 
+    /**
+     * Method returns parameters from executable separated by comma
+     *
+     * @param executable executable where to get parameters from
+     * @param needType flag, which indicates whether type is needed before parameter name
+     * @return {@link java.lang.String} parameters string
+     */
     private static String getParameters(Executable executable, boolean needType) {
         StringBuilder builder = new StringBuilder();
 
@@ -81,6 +128,12 @@ public class Implementor implements Impler, JarImpler {
         return builder.toString();
     }
 
+    /**
+     * Method returns exceptions from executable separated by comma and keyword <code>throws</code> in the beginning
+     *
+     * @param executable executable where to get exceptions from
+     * @return {@link java.lang.String} exceptions string
+     */
     private static String getMethodExceptions(Executable executable) {
         StringBuilder builder = new StringBuilder();
 
@@ -102,6 +155,13 @@ public class Implementor implements Impler, JarImpler {
         return builder.toString();
     }
 
+    /**
+     * Retrieves method declarations
+     *
+     * @param classDefinition class definition
+     * @param executable executable where to get declarations
+     * @return {@link java.lang.String} exceptions string
+     */
     private static String getMethodDeclaration(Class<?> classDefinition, Executable executable) {
         StringBuilder builder = new StringBuilder();
 
@@ -129,6 +189,12 @@ public class Implementor implements Impler, JarImpler {
         return builder.toString();
     }
 
+    /**
+     * Converts array of annotations to string
+     *
+     * @param annotations array of annotations
+     * @return {@link java.lang.String}
+     */
     private static String getMethodAnnotations(Annotation[] annotations) {
         StringBuilder builder = new StringBuilder();
 
@@ -140,6 +206,13 @@ public class Implementor implements Impler, JarImpler {
         return builder.toString();
     }
 
+    /**
+     * Generates full implementation of method
+     *
+     * @param classDefinition class definition
+     * @param method method full implementation of which is needed
+     * @return {@link java.lang.String}
+     */
     private static String getMethodFull(Class<?> classDefinition, Method method) {
         StringBuilder builder = new StringBuilder();
 
@@ -167,6 +240,12 @@ public class Implementor implements Impler, JarImpler {
         return builder.toString();
     }
 
+    /**
+     * Generates class declaration
+     *
+     * @param classDefinition class definition
+     * @return {@link java.lang.String}
+     */
     private static String getClassDeclaration(Class<?> classDefinition) {
         StringBuilder builder = new StringBuilder();
 
@@ -195,6 +274,13 @@ public class Implementor implements Impler, JarImpler {
         return builder.toString();
     }
 
+    /**
+     * Generates constructors for class
+     *
+     * @param classDefinition class definition
+     * @return {@link java.lang.String}
+     * @throws ImplerException if error
+     */
     private static String getConstructors(Class<?> classDefinition) throws ImplerException {
         StringBuilder builder = new StringBuilder();
 
@@ -235,22 +321,44 @@ public class Implementor implements Impler, JarImpler {
 
     /* Region: CREATE CLASS */
 
+    /**
+     * Prints method using {@link java.io.BufferedWriter}
+     *
+     * @param classDefinition class definition
+     * @param method method which to print
+     * @param bufferedWriter used to print implementation of method
+     * @throws IOException if error
+     */
     private static void printMethod(Class<?> classDefinition, Method method, BufferedWriter bufferedWriter) throws IOException {
-        bufferedWriter.write(getMethodFull(classDefinition, method));
+        bufferedWriter.write(escape(getMethodFull(classDefinition, method)));
     }
 
+    /**
+     * Prints class declaration
+     *
+     * @param classDefinition class definition
+     * @param bufferedWriter used to print declaration of class
+     * @throws IOException if error
+     */
     private static void printClassDeclaration(Class<?> classDefinition, BufferedWriter bufferedWriter) throws IOException {
-        bufferedWriter.write(getClassDeclaration(classDefinition));
+        bufferedWriter.write(escape(getClassDeclaration(classDefinition)));
     }
 
-    private static void printMethods(Class<?> classDefinitions, BufferedWriter bufferedWriter) throws IOException {
+    /**
+     * Prints methods
+     *
+     * @param classDefinition class definition
+     * @param bufferedWriter used to print methods
+     * @throws IOException if error
+     */
+    private static void printMethods(Class<?> classDefinition, BufferedWriter bufferedWriter) throws IOException {
         Set<MethodWrapper> set = new HashSet<>();
 
-        for (Method method : classDefinitions.getMethods()) {
+        for (Method method : classDefinition.getMethods()) {
             set.add(new MethodWrapper(method));
         }
 
-        Class<?> ancestor = classDefinitions;
+        Class<?> ancestor = classDefinition;
         while (ancestor != null && !ancestor.equals(Object.class)) {
             for (Method method : ancestor.getDeclaredMethods()) {
                 set.add(new MethodWrapper(method));
@@ -262,20 +370,52 @@ public class Implementor implements Impler, JarImpler {
             if (!Modifier.isAbstract(wrapper.getMethod().getModifiers())) {
                 continue;
             }
-            printMethod(classDefinitions, wrapper.getMethod(), bufferedWriter);
+            printMethod(classDefinition, wrapper.getMethod(), bufferedWriter);
         }
 
-        bufferedWriter.write(RIGHT_CURVE_BRACKET + NEW_LINE);
+        bufferedWriter.write(escape(RIGHT_CURVE_BRACKET + NEW_LINE));
     }
 
+    /**
+     *
+     * Prints class constructors
+     *
+     * @param classDefinition class definition
+     * @param bufferedWriter used to print class constructors
+     * @throws ImplerException if error
+     * @throws IOException if error
+     */
     private static void printConstructors(Class<?> classDefinition, BufferedWriter bufferedWriter) throws ImplerException, IOException {
-        bufferedWriter.write(getConstructors(classDefinition));
+        bufferedWriter.write(escape(getConstructors(classDefinition)));
     }
 
+    /**
+     * Prints package of class
+     *
+     * @param classDefinition class definition
+     * @param BufferedWriter used to print package
+     * @throws IOException if error
+     */
     private static void printPackage(Class<?> classDefinition, BufferedWriter BufferedWriter) throws IOException {
-        BufferedWriter.write(getPackage(classDefinition) + ";" + NEW_LINE);
+        BufferedWriter.write(escape(getPackage(classDefinition) + ";" + NEW_LINE));
     }
 
+    /**
+     * Generates full implementation of class definition in file with suffix <code>Impl.java</code>
+     *
+     * Prints
+     * <ul>
+     *     <li>package</li>
+     *     <li>class declaration</li>
+     *     <li>constructors</li>
+     *     <li>methods</li>
+     * </ul>
+     *
+     * @param classDefinition class definition
+     * @param bufferedWriter used for printing
+     * @throws ImplerException if error
+     * @throws IOException if error
+     */
     private static void printFile(Class<?> classDefinition, BufferedWriter bufferedWriter) throws ImplerException, IOException {
         printPackage(classDefinition, bufferedWriter);
         printClassDeclaration(classDefinition, bufferedWriter);
@@ -317,6 +457,13 @@ public class Implementor implements Impler, JarImpler {
         return repeat(DEFAULT_TAB, tabs);
     }
 
+    /**
+     *
+     *
+     * @param target what to repeat
+     * @param count how many times
+     * @return {@link java.lang.String}
+     */
     private static String repeat(String target, int count) {
         StringBuilder builder = new StringBuilder();
         while (count-- > 0) {
@@ -364,28 +511,54 @@ public class Implementor implements Impler, JarImpler {
         }
     }
 
-    private void compileClass(Path root, Path javaFilePath) throws ImplerException {
+    /**
+     * Compiles class
+     * @param root path root
+     * @param jarFilePath jar file path
+     * @throws ImplerException if fail
+     */
+    private void compileClass(Path root, Path jarFilePath) throws ImplerException {
         JavaCompiler javaCompiler = ToolProvider.getSystemJavaCompiler();
         if (javaCompiler == null) {
             throw new ImplerException("Java compiler was not found");
         }
         int returnCode = javaCompiler.run(null, null, null,
-            javaFilePath.toString(),
+            jarFilePath.toString(),
             "-cp", root + File.pathSeparator + System.getProperty("java.class.path"),
-            "-encoding", "UTF-8"
+            "-encoding", "CP1251"
         );
         if (returnCode != 0) {
             throw new ImplerException("Error with code: " + returnCode + " occurred during compilation");
         }
     }
 
-    private void writeJarFile(Path className, Path root, Path jarPath) throws ImplerException {
+    /**
+     * Creates manifest with needed params
+     * @return {@link java.util.jar.Manifest}
+     */
+    private Manifest createManifest() {
+        Manifest manifest = new Manifest();
+        manifest.getMainAttributes().put(Attributes.Name.MANIFEST_VERSION, "1.0");
+
+        return manifest;
+    }
+
+    /**
+     * Dumps jar
+     *
+     * @param className class name
+     * @param root path root
+     * @param jarPath jar path
+     * @throws ImplerException on implementation error
+     */
+    private void dumpJar(Path className, Path root, Path jarPath) throws ImplerException {
         className = className.normalize();
         root = root.normalize();
         jarPath = jarPath.normalize();
+
         Path classFile = root.resolve(className);
-        Manifest manifest = new Manifest();
-        manifest.getMainAttributes().put(Attributes.Name.MANIFEST_VERSION, "1.0");
+
+        Manifest manifest = createManifest();
         try (JarOutputStream out = new JarOutputStream(Files.newOutputStream(jarPath), manifest)) {
             out.putNextEntry(new ZipEntry(className.toString()));
             Files.copy(classFile, out);
@@ -394,24 +567,33 @@ public class Implementor implements Impler, JarImpler {
         }
     }
 
+    /**
+     * Implements jar
+     *
+     * @param classDefinition class definition
+     * @param pathToJar path to jar
+     * @throws ImplerException if error
+     */
     @Override
-    public void implementJar(Class<?> classDefinition, Path jarFile) throws ImplerException {
+    public void implementJar(Class<?> classDefinition, Path pathToJar) throws ImplerException {
         try {
             Path temporaryDirectory = Paths.get(System.getProperty("java.io.tmpdir"));
             temporaryDirectory = temporaryDirectory.normalize();
-            jarFile = jarFile.normalize();
+            pathToJar = pathToJar.normalize();
 
-            //generate .java file for needed class
             Implementor implementor = new Implementor();
             implementor.implement(classDefinition, temporaryDirectory);
 
             compileClass(temporaryDirectory, Implementor.getFilePath((classDefinition), temporaryDirectory, FileExtension.JAVA));
-            writeJarFile(Implementor.getFilePath(classDefinition, Paths.get("."), FileExtension.CLASS), temporaryDirectory, jarFile);
+            dumpJar(Implementor.getFilePath(classDefinition, Paths.get("."), FileExtension.CLASS), temporaryDirectory, pathToJar);
         } catch (IOException e) {
-            throw new ImplerException(e);
+            throw new ImplerException("Error occurred while implementing jar ", e);
         }
     }
 
+    /**
+     * Helper class used to store methods in {@link java.util.Set}
+     */
     private static class MethodWrapper {
 
         private static final int PRIME = 1031;
@@ -467,10 +649,23 @@ public class Implementor implements Impler, JarImpler {
 
     /* Region: MAIN */
 
+    /**
+     * Entry point of the program. Command line arguments are processed here
+     * <p>
+     * Usage:
+     * <ul>
+     * <li>{@code java -jar Implementor.jar -jar class-to-implement path-to-jar}</li>
+     * <li>{@code java -jar Implementor.jar class-to-implement path-to-class}</li>
+     * </ul>
+     *
+     * @param args command line arguments.
+     * @see Implementor
+     */
     public static void main(String[] args) {
         Implementor implementor = new Implementor();
 
         try {
+            System.setProperty("JAVA_TOOL_OPTIONS", "file-encoding=UTF-8");
             if (args[0].equals(JAR_OPTION)) {
                 implementor.implementJar(Class.forName(args[1]), Paths.get(args[2]));
             } else {
