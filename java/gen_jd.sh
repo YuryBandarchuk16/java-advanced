@@ -1,0 +1,2 @@
+#!/usr/bin/env bash
+javadoc -author -link https://docs.oracle.com/javase/8/docs/api/ -private -sourcepath "src" -classpath tests/ImplementorTest.jar:../lib/* -d javadoc ./ru/ifmo/rain/bandarchuk/implementor/Implementor.java ./info/kgeorgiy/java/advanced/implementor/ImplerException.java ./info/kgeorgiy/java/advanced/implementor/Impler.java ./info/kgeorgiy/java/advanced/implementor/JarImpler.java

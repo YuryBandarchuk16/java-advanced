@@ -476,14 +476,14 @@ public class Implementor implements Impler, JarImpler {
             } else {
                 implementor.implement(Class.forName(args[0]), Paths.get(args[1]));
             }
-        } catch (ClassNotFoundException e) {
-            System.err.println("Incorrect input class name");
-        } catch (InvalidPathException e) {
-            System.err.println("Incorrect input root path");
         } catch (ArrayIndexOutOfBoundsException e) {
             System.err.println("Not enough arguments");
+        } catch (ClassNotFoundException e) {
+            System.err.println("Incorrect class name");
+        } catch (InvalidPathException e) {
+            System.err.println("Incorrect root path");
         } catch (ImplerException e) {
-            System.err.println("Exception, when implementing class: " + e.getMessage());
+            System.err.println("Error occurred during the implementation " + e.getMessage());
         }
     }
 
