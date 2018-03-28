@@ -6,7 +6,7 @@ import java.util.function.Function;
 import java.util.stream.Stream;
 
 public class MapReduceManager {
-    public static <T, R> R work(int threads, List<? extends T> elements,
+    public static <T, R> R work(int threads, final List<? extends T> elements,
                                 final Function<Stream<? extends T>, R> map,
                                 final Function<? super Stream<R>, R> reduce) throws InterruptedException {
         Reducer<R> reducer = new Reducer<>(reduce);
