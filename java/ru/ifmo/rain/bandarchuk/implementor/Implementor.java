@@ -57,10 +57,10 @@ public class Implementor implements Impler, JarImpler {
         int textLength = text.length();
         for (int index = 0; index < textLength; index++) {
             char code = text.charAt(index);
-            if ((int)code <= 127) {
+            if ((int) code <= 127) {
                 result.append(code);
             } else {
-                result.append(String.format("\\u%04x", (int)code));
+                result.append(String.format("\\u%04x", (int) code));
             }
         }
 
@@ -109,7 +109,7 @@ public class Implementor implements Impler, JarImpler {
      * Method returns parameters from executable separated by comma
      *
      * @param executable executable where to get parameters from
-     * @param needType flag, which indicates whether type is needed before parameter name
+     * @param needType   flag, which indicates whether type is needed before parameter name
      * @return {@link java.lang.String} parameters string
      */
     private static String getParameters(Executable executable, boolean needType) {
@@ -165,14 +165,14 @@ public class Implementor implements Impler, JarImpler {
      * <br><br>
      * Removes the following modifiers if the executable does have them:
      * <ul>
-     *     <li><code>abstract</code></li>
-     *     <li><code>native</code></li>
-     *     <li><code>transient</code></li>
-     *     <li><code>interface</code></li>
+     * <li><code>abstract</code></li>
+     * <li><code>native</code></li>
+     * <li><code>transient</code></li>
+     * <li><code>interface</code></li>
      * </ul>
      *
      * @param classDefinition class definition
-     * @param executable executable where to get declarations
+     * @param executable      executable where to get declarations
      * @return {@link java.lang.String} methods string
      */
     private static String getMethodDeclaration(Class<?> classDefinition, Executable executable) {
@@ -224,14 +224,13 @@ public class Implementor implements Impler, JarImpler {
      * <br><br>
      * The following items are generated here:
      * <ul>
-     *     <li>Annotations</li>
-     *     <li>Method declaration with all needed modifiers</li>
-     *     <li>Method implementation with default return value if needed</li>
+     * <li>Annotations</li>
+     * <li>Method declaration with all needed modifiers</li>
+     * <li>Method implementation with default return value if needed</li>
      * </ul>
      *
-     *
      * @param classDefinition class definition
-     * @param method method full implementation of which is needed
+     * @param method          method full implementation of which is needed
      * @return {@link java.lang.String} full method implementation
      */
     private static String getMethodFull(Class<?> classDefinition, Method method) {
@@ -347,8 +346,8 @@ public class Implementor implements Impler, JarImpler {
      * Prints method using {@link java.io.BufferedWriter}
      *
      * @param classDefinition class definition
-     * @param method method which to print
-     * @param bufferedWriter used to print implementation of method
+     * @param method          method which to print
+     * @param bufferedWriter  used to print implementation of method
      * @throws IOException if error with IO
      */
     private static void printMethod(Class<?> classDefinition, Method method, BufferedWriter bufferedWriter) throws IOException {
@@ -359,7 +358,7 @@ public class Implementor implements Impler, JarImpler {
      * Prints class declaration using {@link java.io.BufferedWriter}
      *
      * @param classDefinition class definition
-     * @param bufferedWriter used to print declaration of class
+     * @param bufferedWriter  used to print declaration of class
      * @throws IOException if error with IO
      */
     private static void printClassDeclaration(Class<?> classDefinition, BufferedWriter bufferedWriter) throws IOException {
@@ -370,7 +369,7 @@ public class Implementor implements Impler, JarImpler {
      * Prints methods using {@link java.io.BufferedWriter}
      *
      * @param classDefinition class definition
-     * @param bufferedWriter used to print methods
+     * @param bufferedWriter  used to print methods
      * @throws IOException if error with IO
      */
     private static void printMethods(Class<?> classDefinition, BufferedWriter bufferedWriter) throws IOException {
@@ -402,9 +401,9 @@ public class Implementor implements Impler, JarImpler {
      * Prints class constructors using {@link java.io.BufferedWriter}
      *
      * @param classDefinition class definition
-     * @param bufferedWriter used to print class constructors
+     * @param bufferedWriter  used to print class constructors
      * @throws ImplerException if error occurred at the stage of generating constructor
-     * @throws IOException if error with IO
+     * @throws IOException     if error with IO
      * @see ImplerException
      */
     private static void printConstructors(Class<?> classDefinition, BufferedWriter bufferedWriter) throws ImplerException, IOException {
@@ -415,7 +414,7 @@ public class Implementor implements Impler, JarImpler {
      * Prints package of class using {@link java.io.BufferedWriter}
      *
      * @param classDefinition class definition
-     * @param BufferedWriter used to print package
+     * @param BufferedWriter  used to print package
      * @throws IOException if error with IO
      */
     private static void printPackage(Class<?> classDefinition, BufferedWriter BufferedWriter) throws IOException {
@@ -427,16 +426,16 @@ public class Implementor implements Impler, JarImpler {
      * <br>
      * Prints the following: <br>
      * <ul>
-     *     <li>package</li>
-     *     <li>class declaration</li>
-     *     <li>constructors</li>
-     *     <li>methods</li>
+     * <li>package</li>
+     * <li>class declaration</li>
+     * <li>constructors</li>
+     * <li>methods</li>
      * </ul>
      *
      * @param classDefinition class definition
-     * @param bufferedWriter used for printing
+     * @param bufferedWriter  used for printing
      * @throws ImplerException if error
-     * @throws IOException if error
+     * @throws IOException     if error
      */
     private static void printFile(Class<?> classDefinition, BufferedWriter bufferedWriter) throws ImplerException, IOException {
         printPackage(classDefinition, bufferedWriter);
@@ -492,11 +491,11 @@ public class Implementor implements Impler, JarImpler {
      * Repeats the <code>target</code> <code>count</code> times by concatenating
      * <br>
      * Works in O(<code>target.length</code> * <code>count</code>)
-     * @see StringBuilder
      *
      * @param target what to repeat
-     * @param count how many times
+     * @param count  how many times
      * @return {@link java.lang.String} <code>target</code> appended to empty string <code>count</code> times
+     * @see StringBuilder
      */
     private static String repeat(String target, int count) {
         StringBuilder builder = new StringBuilder();
@@ -512,7 +511,7 @@ public class Implementor implements Impler, JarImpler {
      * Updates path according to specified package
      *
      * @param classDefinition class definition
-     * @param root root path
+     * @param root            root path
      * @return {@link Path}
      */
     private static Path addPackageToPath(Class<?> classDefinition, Path root) {
@@ -528,8 +527,8 @@ public class Implementor implements Impler, JarImpler {
      * Returns full path where implementation class of <code>classDefinition</code> with extension <code>extension</code> should be generated
      *
      * @param classDefinition class definition
-     * @param root root path
-     * @param extension file extension
+     * @param root            root path
+     * @param extension       file extension
      * @return {@link Path}
      * @throws IOException if error with IO
      */
@@ -544,7 +543,7 @@ public class Implementor implements Impler, JarImpler {
      * Creates implementation for the given class <code>classDefinition</code> and dumps it to <code>root</code>
      *
      * @param classDefinition class definition
-     * @param root root directory
+     * @param root            root directory
      * @throws ImplerException if error occurred when generating
      * @see ImplerException
      */
@@ -573,7 +572,7 @@ public class Implementor implements Impler, JarImpler {
     /**
      * Compiles class
      *
-     * @param root path root
+     * @param root        path root
      * @param jarFilePath jar file path
      * @throws ImplerException if fail
      * @see ImplerException
@@ -611,8 +610,8 @@ public class Implementor implements Impler, JarImpler {
      * Dumps jar
      *
      * @param className class name
-     * @param root path root
-     * @param jarPath jar path
+     * @param root      path root
+     * @param jarPath   jar path
      * @throws ImplerException on implementation error
      * @see Path
      */
@@ -636,7 +635,7 @@ public class Implementor implements Impler, JarImpler {
      * Implements jar
      *
      * @param classDefinition class definition
-     * @param pathToJar path to jar
+     * @param pathToJar       path to jar
      * @throws ImplerException if error
      * @see ImplerException
      * @see Class
