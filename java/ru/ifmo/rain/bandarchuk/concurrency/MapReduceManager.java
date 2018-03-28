@@ -12,18 +12,27 @@ public class MapReduceManager {
         Reducer<R> reducer = new Reducer<>(reduce);
         List<Worker<T, R>> workers = MapReduceManager.assign(Splitter.split(threads, elements), map);
 
-        for (Worker<T, R> worker: workers) {
-            reducer.add(worker.getResult());
+        InterruptedException exception = null;
+        for (Worker<T, R> worker : workers) {
+            try {
+                reducer.add(worker.getResult());
+            } catch (InterruptedException e) {
+                exception = e;
+            }
+        }
+
+        if (exception != null) {
+            throw exception;
         }
 
         return reducer.reduce();
     }
 
     private static <T, R> List<Worker<T, R>> assign(final List<List<? extends T>> tasks,
-                                              final Function<Stream<? extends T>, R> map) {
+                                                    final Function<Stream<? extends T>, R> map) {
         List<Worker<T, R>> workers = new ArrayList<>();
 
-        for(List<? extends T> task: tasks) {
+        for (List<? extends T> task : tasks) {
             workers.add(new Worker<>(map, task.stream()));
         }
 
