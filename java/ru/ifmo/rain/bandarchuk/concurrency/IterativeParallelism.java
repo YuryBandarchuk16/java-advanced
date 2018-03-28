@@ -34,13 +34,13 @@ public class IterativeParallelism implements ListIP {
 
     @Override
     public <T> T maximum(int threads, List<? extends T> elements, Comparator<? super T> comparator) throws InterruptedException {
-        Function<Stream<? extends T>, T> function = s -> s.max(comparator).get();
+        Function<Stream<? extends T>, T> function = s -> s.max(comparator).orElse(null);
         return MapReduceManager.work(threads, elements, function, function);
     }
 
     @Override
     public <T> T minimum(int threads, List<? extends T> elements, Comparator<? super T> comparator) throws InterruptedException {
-        Function<Stream<? extends T>, T> function = s -> s.min(comparator).get();
+        Function<Stream<? extends T>, T> function = s -> s.min(comparator).orElse(null);
         return MapReduceManager.work(threads, elements, function, function);
     }
 
