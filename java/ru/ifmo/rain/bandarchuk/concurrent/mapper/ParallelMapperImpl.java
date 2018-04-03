@@ -34,8 +34,6 @@ public class ParallelMapperImpl implements ParallelMapper {
                     }
                 }
             } catch (InterruptedException ignored) {
-            } finally {
-                Thread.currentThread().interrupt();
             }
         };
 
