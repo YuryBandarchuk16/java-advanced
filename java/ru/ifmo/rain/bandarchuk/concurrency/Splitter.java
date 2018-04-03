@@ -2,9 +2,10 @@ package ru.ifmo.rain.bandarchuk.concurrency;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Stream;
 
 public class Splitter {
-    public static <T> List<List<? extends T>> split(final int parts, final List<? extends T> elements) {
+    public static <T> List<Stream<? extends T>> split(final int parts, final List<? extends T> elements) {
         if (parts <= 0) {
             throw new IllegalArgumentException("Invalid argument: parts = " + parts + ", can not be less than zero");
         }
@@ -14,7 +15,7 @@ public class Splitter {
         int elementsSize = elements.size();
         int chunkSize = Math.max(1, elementsSize / parts);
         int tailSize = elementsSize - chunkSize * parts;
-        List<List<? extends T>> result = new ArrayList<>();
+        List<Stream<? extends T>> result = new ArrayList<>();
 
         int index = 0;
         while (index < elementsSize) {
@@ -24,7 +25,7 @@ public class Splitter {
                 currentChunkSize++;
             }
 
-            result.add(elements.subList(index, Math.min(elementsSize, index + currentChunkSize)));
+            result.add(elements.subList(index, Math.min(elementsSize, index + currentChunkSize)).stream());
             index += currentChunkSize;
         }
 

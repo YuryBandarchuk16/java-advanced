@@ -1,6 +1,8 @@
 package ru.ifmo.rain.bandarchuk.concurrency;
 
 import info.kgeorgiy.java.advanced.concurrent.ListIP;
+import info.kgeorgiy.java.advanced.mapper.ParallelMapper;
+import ru.ifmo.rain.bandarchuk.concurrent.mapper.ParallelMapperImpl;
 
 import java.util.Comparator;
 import java.util.List;
@@ -10,6 +12,10 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class IterativeParallelism implements ListIP {
+
+    public IterativeParallelism(ParallelMapper parallelMapper) {
+        MapReduceManager.parallelMapper = parallelMapper;
+    }
 
     @Override
     public String join(int threads, List<?> elements) throws InterruptedException {
