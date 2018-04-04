@@ -3,6 +3,7 @@ package ru.ifmo.rain.bandarchuk.concurrent.mapper;
 import info.kgeorgiy.java.advanced.mapper.ParallelMapper;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
@@ -79,10 +80,7 @@ public class ParallelMapperImpl implements ParallelMapper {
     public <T, R> List<R> map(Function<? super T, ? extends R> f, List<? extends T> args) throws InterruptedException {
         int elementsCount = args.size();
 
-        List<R> result = new ArrayList<>(elementsCount);
-        for (int i = 0; i < elementsCount; i++) {
-            result.add(null);
-        }
+        List<R> result = new ArrayList<>(Collections.nCopies(elementsCount, null));
 
         final SelfNotifiableCounter counter = new SelfNotifiableCounter(0, elementsCount);
         for (int index = 0; index < elementsCount; index++) {
