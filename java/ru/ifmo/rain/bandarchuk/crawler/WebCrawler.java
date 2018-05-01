@@ -57,7 +57,7 @@ public class WebCrawler implements Crawler {
             downloaded.add(link);
             final int currentDepth = visitedLinks.get(link);
             final int newDepth = currentDepth + 1;
-            if (currentDepth < depth) {
+            if (currentDepth <= depth) {
                 Runnable downloadTask = () -> {
                     try {
                         final Document document = downloader.download(link);
@@ -73,24 +73,32 @@ public class WebCrawler implements Crawler {
                                         }
                                     }
                                 });
-                                pendingTasks.decrementAndGet();
-                                synchronized (pendingLinks) {
-                                    pendingLinks.notify();
-                                }
                             } catch (IOException e) {
                                 if (!errors.containsKey(link)) {
                                     errors.put(link, e);
                                 }
+                            } finally {
+                                pendingTasks.decrementAndGet();
+                                synchronized (pendingLinks) {
+                                    pendingLinks.notify();
+                                }
                             }
                         };
-                        extractorsPool.addTask(extractTask);
+                        if (currentDepth < depth) {
+                            extractorsPool.addTask(extractTask);
+                        } else {
+                            pendingTasks.decrementAndGet();
+                            synchronized (pendingLinks) {
+                                pendingLinks.notify();
+                            }
+                        }
                     } catch (IOException e) {
                         if (!errors.containsKey(link)) {
                             errors.put(link, e);
                         }
                         pendingTasks.decrementAndGet();
-                        synchronized (pendingTasks) {
-                            pendingTasks.notify();
+                        synchronized (pendingLinks) {
+                            pendingLinks.notify();
                         }
                     }
                 };
