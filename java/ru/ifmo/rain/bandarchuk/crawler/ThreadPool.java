@@ -1,24 +1,8 @@
 package ru.ifmo.rain.bandarchuk.crawler;
 
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+public interface ThreadPool extends AutoCloseable {
 
-public class ThreadPool implements AutoCloseable {
+    void addTask(Runnable task);
 
-    private final ExecutorService tasksPool;
-
-    public ThreadPool(int maxThreadNum) {
-        tasksPool = Executors.newFixedThreadPool(maxThreadNum);
-    }
-
-    public void addTask(Runnable task) {
-        synchronized (tasksPool) {
-            tasksPool.submit(task);
-        }
-    }
-
-    @Override
-    public void close() {
-        tasksPool.shutdown();
-    }
+    void close();
 }

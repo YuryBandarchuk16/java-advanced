@@ -10,105 +10,75 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.Phaser;
 
 public class WebCrawler implements Crawler {
 
-    private static final int INITIAL_DEPTH = 1;
+    private static final int DEFAULT_DEPTH = 2;
+    private static final int DEFAULT_DOWNLOADERS = 10;
+    private static final int DEFAULT_EXTRACTORS = 10;
+    private static final int DEFAULT_CONNECTIONS_PER_HOST = 10;
 
     private final ThreadPool downloadersPool;
     private final ThreadPool extractorsPool;
     private final Downloader downloader;
 
     public WebCrawler(Downloader downloader, int downloaders, int extractors, int perHost) {
-        downloadersPool = new ThreadPool(downloaders);
-        extractorsPool  = new ThreadPool(extractors);
+        downloadersPool = new ThreadPoolImpl(downloaders);
+        extractorsPool  = new ThreadPoolImpl(extractors);
         this.downloader = downloader;
     }
 
     @Override
     public Result download(String url, int depth) {
-        final AtomicInteger pendingTasks = new AtomicInteger(0);
         final Set<String> downloaded =  ConcurrentHashMap.newKeySet();
         final Map<String, IOException> errors = new ConcurrentHashMap<>();
-        final Map<String, Integer> visitedLinks = new ConcurrentHashMap<>();
-        final Queue<String> pendingLinks = new ConcurrentLinkedQueue<>();
 
-        pendingLinks.add(url);
-        visitedLinks.put(url, INITIAL_DEPTH);
-        while (true) {
-            synchronized (pendingLinks) {
-                while (pendingLinks.isEmpty() && pendingTasks.get() > 0) {
-                    try {
-                        pendingLinks.wait();
-                    } catch (InterruptedException ignored) {
-                        break;
-                    }
-                }
-                if (pendingLinks.isEmpty() && pendingTasks.get() == 0) {
-                    break;
-                }
-            }
-            String link = pendingLinks.poll();
-            downloaded.add(link);
-            final int currentDepth = visitedLinks.get(link);
-            final int newDepth = currentDepth + 1;
-            if (currentDepth <= depth) {
-                Runnable downloadTask = () -> {
-                    try {
-                        final Document document = downloader.download(link);
-                        Runnable extractTask = () -> {
-                            try {
-                                List<String> newLinks = document.extractLinks();
-                                newLinks.forEach(newLink -> {
-                                    if (!visitedLinks.containsKey(newLink)) {
-                                        visitedLinks.put(newLink, newDepth);
-                                        pendingLinks.add(newLink);
-                                        synchronized (pendingLinks) {
-                                            pendingLinks.notify();
-                                        }
-                                    }
-                                });
-                            } catch (IOException e) {
-                                if (!errors.containsKey(link)) {
-                                    errors.put(link, e);
-                                }
-                            } finally {
-                                pendingTasks.decrementAndGet();
-                                synchronized (pendingLinks) {
-                                    pendingLinks.notify();
-                                }
-                            }
-                        };
-                        if (currentDepth < depth) {
-                            extractorsPool.addTask(extractTask);
-                        } else {
-                            pendingTasks.decrementAndGet();
-                            synchronized (pendingLinks) {
-                                pendingLinks.notify();
-                            }
-                        }
-                    } catch (IOException e) {
-                        if (!errors.containsKey(link)) {
-                            errors.put(link, e);
-                        }
-                        pendingTasks.decrementAndGet();
-                        synchronized (pendingLinks) {
-                            pendingLinks.notify();
-                        }
-                    }
-                };
-                pendingTasks.incrementAndGet();
-                downloadersPool.addTask(downloadTask);
-            }
-        }
+        final Phaser phaser = new Phaser(1);
+        downloaded.add(url);
+        traverse(url, depth, downloaded, errors, phaser);
+        phaser.arriveAndAwaitAdvance();
 
         downloaded.removeAll(errors.keySet());
         return new Result(new ArrayList<>(downloaded), errors);
+    }
+
+    private void traverse(final String url, final int remainingDepth, final Set<String> downloaded,
+                          final Map<String, IOException> errors, final Phaser phaser) {
+        if (remainingDepth > 0) {
+            Runnable downloadTask = () -> {
+                try {
+                    final Document document = downloader.download(url);
+                    Runnable extractTask = () -> {
+                        try {
+                            List<String> newLinks = document.extractLinks();
+                            newLinks.forEach(newLink -> {
+                                if (!downloaded.contains(newLink)) {
+                                    downloaded.add(newLink);
+                                    traverse(newLink, remainingDepth - 1, downloaded, errors, phaser);
+                                }
+                            });
+                        } catch (IOException e) {
+                            errors.put(url, e);
+                        } finally {
+                            phaser.arrive();
+                        }
+                    };
+                    if (remainingDepth > 1) {
+                        phaser.register();
+                        extractorsPool.addTask(extractTask);
+                    }
+                } catch (IOException e) {
+                    errors.put(url, e);
+                } finally {
+                    phaser.arrive();
+                }
+            };
+            phaser.register();
+            downloadersPool.addTask(downloadTask);
+        }
     }
 
     @Override
@@ -118,7 +88,30 @@ public class WebCrawler implements Crawler {
     }
 
     public static void main(String[] args) throws IOException {
-        WebCrawler crawler = new WebCrawler(new CachingDownloader(), 10, 10, 2);
-        crawler.download("http://www.ifmo.ru", 1).getDownloaded().forEach(System.out::println);
+        try {
+            if (args.length == 0) {
+                throw new CrawlerException("Usage:" +
+                                           "       url [depth [downloaders [extractors [perHost]]]]");
+            }
+            String url      = args[0];
+            int depth       = Utils.getArgument(args, 1, Integer::parseInt, DEFAULT_DEPTH);
+            int downloaders = Utils.getArgument(args, 2, Integer::parseInt, DEFAULT_DOWNLOADERS);
+            int extractors  = Utils.getArgument(args, 3, Integer::parseInt, DEFAULT_EXTRACTORS);
+            int perHost     = Utils.getArgument(args, 4, Integer::parseInt, DEFAULT_CONNECTIONS_PER_HOST);
+
+            Downloader downloader = new CachingDownloader();
+            WebCrawler crawler = new WebCrawler(downloader, downloaders, extractors, perHost);
+            Result result = crawler.download(url, depth);
+
+            System.out.println("Successfully downloaded: " + result.getDownloaded().size());
+            result.getDownloaded().forEach(System.out::println);
+            System.out.println("Not downloaded due to error: " + result.getErrors().size());
+            result.getErrors().forEach((s, e) -> {
+                System.out.println("URL: " + s);
+                System.out.println("Error: " + e.getMessage());
+            });
+        } catch (CrawlerException e) {
+            System.out.println(e.getMessage());
+        }
     }
 }
